@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "778331833452",
+    "firebase_url": "https://progetto-ids---disarray-men.firebaseio.com",
+    "project_id": "progetto-ids---disarray-men",
+    "storage_bucket": "progetto-ids---disarray-men.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:778331833452:android:083950a75cc4d8dc480449",
+        "android_client_info": {
+          "package_name": "com.disarraymen.redzone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "778331833452-j5v7t6nfkv7ir8162e4d5g3h0o7grd83.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9WG-p7yzPDEmqkFxZKTFwtC4tIfUDT5g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "778331833452-j5v7t6nfkv7ir8162e4d5g3h0o7grd83.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
