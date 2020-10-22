@@ -55,7 +55,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LocationManager mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         Location position = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
-        LatLng location = new LatLng(position.getLatitude()+0.05, position.getLongitude());
+        LatLng location = new LatLng(position.getLatitude(), position.getLongitude());
         mMap.addMarker(new MarkerOptions().position(location).title("Marker in Local Position"));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(location));
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 12.0f));
