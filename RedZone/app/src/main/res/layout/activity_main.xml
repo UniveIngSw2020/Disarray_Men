@@ -9,68 +9,41 @@
         android:orientation="vertical"
         android:layout_margin="16dp"
         tools:context="com.chikeandroid.tutsplusalerts.MainActivity">
- 
+
     <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="239dp"
+            android:orientation="vertical" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Test Notifica"
+            android:textAppearance="@style/TextAppearance.AppCompat.Title" />
+
+        <EditText
+            android:id="@+id/et_android_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
- 
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Tuts+ Android Channel"
-                android:layout_gravity="center_horizontal"
-                android:textAppearance="@style/TextAppearance.AppCompat.Title"/>
- 
+            android:hint="Linea 1" />
+
         <EditText
-                android:id="@+id/et_android_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Title"/>
- 
-        <EditText
-                android:id="@+id/et_android_author"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Author"/>
-         
-        <Button
-                android:id="@+id/btn_send_android"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Send"/>
-    </LinearLayout>
- 
-    <LinearLayout
+            android:id="@+id/et_android_author"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="20dp">
- 
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Tuts+ IOS Channel"
-                android:layout_gravity="center_horizontal"
-                android:textAppearance="@style/TextAppearance.AppCompat.Title"/>
- 
-        <EditText
-                android:id="@+id/et_ios_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Title"
-                />
- 
-        <EditText
-                android:id="@+id/et_ios_author"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Author"/>
+            android:hint="Linea 2" />
+
         <Button
-                android:id="@+id/btn_send_ios"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Send"/>
+            android:id="@+id/btn_send_android"
+            android:layout_width="match_parent"
+            android:layout_height="87dp"
+            android:text="Invia" />
     </LinearLayout>
-     
+
 </LinearLayout>

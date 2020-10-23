@@ -14,9 +14,7 @@ public class NotificationUtils extends ContextWrapper {
 
     private NotificationManager mManager;
     public static final String ANDROID_CHANNEL_ID = "com.chikeandroid.tutsplustalerts.ANDROID";
-    public static final String IOS_CHANNEL_ID = "com.chikeandroid.tutsplustalerts.IOS";
     public static final String ANDROID_CHANNEL_NAME = "ANDROID CHANNEL";
-    public static final String IOS_CHANNEL_NAME = "IOS CHANNEL";
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     public NotificationUtils(Context base) {
@@ -40,15 +38,6 @@ public class NotificationUtils extends ContextWrapper {
         androidChannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
 
         getManager().createNotificationChannel(androidChannel);
-
-        // create ios channel
-        NotificationChannel iosChannel = new NotificationChannel(IOS_CHANNEL_ID,
-                IOS_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
-        iosChannel.enableLights(true);
-        iosChannel.enableVibration(true);
-        iosChannel.setLightColor(Color.GRAY);
-        iosChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
-        getManager().createNotificationChannel(iosChannel);
     }
 
     public NotificationManager getManager() {
