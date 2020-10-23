@@ -10,40 +10,38 @@
         android:layout_margin="16dp"
         tools:context="com.chikeandroid.tutsplusalerts.MainActivity">
 
-    <LinearLayout
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="239dp"
+        android:layout_gravity="center_horizontal" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="@string/notification_test_title"
+        android:textAppearance="@style/TextAppearance.AppCompat.Title" />
+
+    <EditText
+        android:id="@+id/et_android_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:autofillHints=""
+        android:hint="@string/line1"
+        android:inputType="text" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="239dp"
-            android:orientation="vertical" />
+    <EditText
+        android:id="@+id/et_android_author"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:autofillHints=""
+        android:hint="@string/line2"
+        android:inputType="text" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="Test Notifica"
-            android:textAppearance="@style/TextAppearance.AppCompat.Title" />
-
-        <EditText
-            android:id="@+id/et_android_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Linea 1" />
-
-        <EditText
-            android:id="@+id/et_android_author"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Linea 2" />
-
-        <Button
-            android:id="@+id/btn_send_android"
-            android:layout_width="match_parent"
-            android:layout_height="87dp"
-            android:text="Invia" />
-    </LinearLayout>
+    <Button
+        android:id="@+id/btn_send_android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/send" />
 
 </LinearLayout>
