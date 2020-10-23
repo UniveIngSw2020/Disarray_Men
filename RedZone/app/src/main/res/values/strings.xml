@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Red Zone</string>
     <string name="title_activity_maps">Map</string>
+    <string name="do_it">do</string>
 </resources>
