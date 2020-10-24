@@ -6,7 +6,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Looper;
@@ -29,7 +28,10 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -38,6 +40,8 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+
+import java.util.Random;
 
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
@@ -48,6 +52,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private double currentlongitude;
     private LocationManager locationManager;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,8 +60,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_maps);
 
         if (!isPermissionAccess()) {
-            ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 99);
-            ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 99);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 99);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 99);
         }
         startLocationUpdates();
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -114,8 +119,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
-
-
     @SuppressLint("MissingPermission")
     protected void startLocationUpdates() {
 
@@ -141,6 +144,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     public void onLocationResult(LocationResult locationResult) {
                         // do work here
                         onLocationChanged(locationResult.getLastLocation());
+                        updateOthersLocation();
                     }
                 },
                 Looper.myLooper());
@@ -152,9 +156,66 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         String msg = "Updated Location: " +
                 Double.toString(location.getLatitude()) + "," +
                 Double.toString(location.getLongitude());
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         // You can now create a LatLng Object for use with maps
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        updateMyLocationOnDatabase(latLng);
+    }
+    Circle mark = null;
+    Marker mark2 = null;
+
+    public void updateOthersLocation() {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference("usersLocations");
+        // Read from the database
+        myRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+                String value = dataSnapshot.getValue(String.class);
+                String[] latlong = value.split(",");
+                //Log.d(TAG, "Value is: " + value);
+                Toast.makeText(getBaseContext(), value, Toast.LENGTH_LONG).show();
+                double rand = Math.random()/100;
+                LatLng pos = new LatLng(Double.parseDouble(latlong[0]) + rand, Double.parseDouble(latlong[1]));
+                if ( mark == null) {
+
+                    mark = mMap.addCircle(new CircleOptions()
+                            .center(pos)
+                            .radius(100)
+                            .fillColor(0x44ff0000)
+                            .strokeColor(0xffff0000)
+                            .strokeWidth(0));
+                    /*
+                    mark2 = mMap.addMarker(new MarkerOptions()
+                            .position(pos)
+                            .title("Persona"));
+                     */
+                } else {
+                    mark.setCenter(pos);
+                    mark.setRadius(100);
+                    mMap.getCameraPosition().zoom
+                    /*
+                    mark2.setPosition(pos);
+
+                     */
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                //Log.w(TAG, "Failed to read value.", error.toException());
+            }
+        });
+    }
+
+
+    public void updateMyLocationOnDatabase(LatLng latLng) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference("usersLocations2");
+        myRef.setValue(latLng);
     }
 
     @SuppressLint("MissingPermission")
