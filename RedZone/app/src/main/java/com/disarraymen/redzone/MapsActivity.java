@@ -10,6 +10,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Looper;
 import android.util.Log;
+import android.util.Pair;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -40,17 +41,34 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.database.core.Path;
+import com.google.firebase.database.snapshot.ChildKey;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
+    public FirebaseDatabase database;
+    public DatabaseReference myRef;
+    private LocationManager locationManager;
     private double currentlatitude;
     private double currentlongitude;
-    private LocationManager locationManager;
+    public String userId;
+    private LatLng myLatLng;
 
 
     @Override
@@ -58,11 +76,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_maps);
+        database = FirebaseDatabase.getInstance();
+        myRef = database.getReference().child("userLocations");
 
         if (!isPermissionAccess()) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 99);
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 99);
         }
+        getCurrentLocation();
         startLocationUpdates();
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
@@ -94,19 +115,19 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void getCurrentLocation() {
         if (isPermissionAccess()) {
             LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-            FirebaseDatabase database = FirebaseDatabase.getInstance();
-            DatabaseReference myRef = database.getReference("usersLocations");
             if (locationManager != null) {
-                @SuppressLint("MissingPermission") Location gpsLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                @SuppressLint("MissingPermission") Location netLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                Location gpsLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                Location netLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                 if (gpsLocation != null) {
                     currentlatitude = gpsLocation.getLatitude();
                     currentlongitude = gpsLocation.getLongitude();
-                    myRef.setValue(currentlatitude + "," + currentlongitude);
+                    //myRef.setValue(currentlatitude + "," + currentlongitude);
                 } else if (netLocation != null) {
                     currentlatitude = netLocation.getLatitude();
                     currentlongitude = netLocation.getLongitude();
                 }
+                myLatLng = new LatLng(currentlatitude, currentlongitude);
+                updateMyLocationOnDatabase();
             }
         }
 
@@ -158,48 +179,45 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Double.toString(location.getLongitude());
         //Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         // You can now create a LatLng Object for use with maps
-        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        updateMyLocationOnDatabase(latLng);
+        myLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+        updateMyLocationOnDatabase();
     }
-    Circle mark = null;
-    Marker mark2 = null;
+
+    HashMap<String, Circle> marks = new HashMap();
 
     public void updateOthersLocation() {
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference("usersLocations");
         // Read from the database
         myRef.addValueEventListener(new ValueEventListener() {
+
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 // This method is called once with the initial value and again
                 // whenever data at this location is updated.
-                String value = dataSnapshot.getValue(String.class);
-                String[] latlong = value.split(",");
-                //Log.d(TAG, "Value is: " + value);
-                Toast.makeText(getBaseContext(), value, Toast.LENGTH_LONG).show();
-                double rand = Math.random()/100;
-                LatLng pos = new LatLng(Double.parseDouble(latlong[0]) + rand, Double.parseDouble(latlong[1]));
-                if ( mark == null) {
-
-                    mark = mMap.addCircle(new CircleOptions()
-                            .center(pos)
-                            .radius(100)
-                            .fillColor(0x44ff0000)
-                            .strokeColor(0xffff0000)
-                            .strokeWidth(0));
-                    /*
-                    mark2 = mMap.addMarker(new MarkerOptions()
-                            .position(pos)
-                            .title("Persona"));
-                     */
-                } else {
-                    mark.setCenter(pos);
-                    mark.setRadius(100);
-                    mMap.getCameraPosition().zoom
-                    /*
-                    mark2.setPosition(pos);
-
-                     */
+                Iterable<DataSnapshot> values = dataSnapshot.getChildren();
+                Iterator<DataSnapshot> iteratorDataSnapshot = values.iterator();
+                Boolean flag = false;
+                while (iteratorDataSnapshot.hasNext()){
+                    DataSnapshot snap = iteratorDataSnapshot.next();
+                    String val = snap.getKey();
+                    if(val != userId && snap.child("data").getValue() != null) {
+                        String[] vall = snap.getValue().toString().split("=");
+                        String[] latlong = vall[1].split(",");
+                        String lng = latlong[1].substring(0, 8);
+                        LatLng pos = new LatLng(Double.parseDouble(latlong[0]), Double.parseDouble(lng));
+                        if (marks.containsKey(val)) {
+                            marks.get(val).setCenter(pos);
+                        } else {
+                            Circle localMark = mMap.addCircle(new CircleOptions()
+                                    .center(pos)
+                                    .radius(1000)
+                                    .fillColor(0x44ff0000)
+                                    .strokeColor(0xffff0000)
+                                    .strokeWidth(0));
+                            marks.put(val, localMark);
+                        }
+                    } else {
+                        marks.remove(val);
+                    }
                 }
             }
 
@@ -210,12 +228,46 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
+    private void toastMe(String str){
+        Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
+    }
 
 
-    public void updateMyLocationOnDatabase(LatLng latLng) {
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference("usersLocations2");
-        myRef.setValue(latLng);
+    public void updateMyLocationOnDatabase() {
+        if(userId == null) {userId = generateRandomString();}
+        DatabaseReference userNameRef = myRef.child(userId);
+        ValueEventListener eventListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(!dataSnapshot.hasChild(userId) || dataSnapshot.child(userId).getValue() == null) {
+                    myRef.child(userId).child("data").setValue(myLatLng.latitude + "," + myLatLng.longitude);
+                    myRef.child(userId).child("timestamp").setValue(System.currentTimeMillis());
+                } else {
+                    userId = generateRandomString();
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                //updateMyLocationOnDatabase();
+                userId = generateRandomString();
+            }
+        };
+
+
+        userNameRef.addListenerForSingleValueEvent(eventListener);
+        //Toast.makeText(this, myLatLng.toString(), Toast.LENGTH_SHORT).show();
+    }
+
+    static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    static SecureRandom rnd = new SecureRandom();
+
+    private String generateRandomString(){
+        int len = 7;
+        StringBuilder sb = new StringBuilder( len );
+        for( int i = 0; i < len; i++ )
+            sb.append( AB.charAt( rnd.nextInt(AB.length()) ) );
+        return sb.toString();
     }
 
     @SuppressLint("MissingPermission")
