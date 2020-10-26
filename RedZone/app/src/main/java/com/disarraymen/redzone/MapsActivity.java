@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
 import android.util.Log;
@@ -14,6 +15,8 @@ import android.util.Pair;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -36,6 +39,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -50,12 +54,15 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.EventListener;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
@@ -187,47 +194,105 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void updateOthersLocation() {
         // Read from the database
-        myRef.addValueEventListener(new ValueEventListener() {
-
+        myRef.addChildEventListener(new ChildEventListener() {
             @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                // This method is called once with the initial value and again
-                // whenever data at this location is updated.
-                Iterable<DataSnapshot> values = dataSnapshot.getChildren();
-                Iterator<DataSnapshot> iteratorDataSnapshot = values.iterator();
-                Boolean flag = false;
-                while (iteratorDataSnapshot.hasNext()){
-                    DataSnapshot snap = iteratorDataSnapshot.next();
-                    String val = snap.getKey();
-                    if(val != userId && snap.child("data").getValue() != null) {
-                        String[] vall = snap.getValue().toString().split("=");
-                        String[] latlong = vall[1].split(",");
-                        String lng = latlong[1].substring(0, 8);
-                        LatLng pos = new LatLng(Double.parseDouble(latlong[0]), Double.parseDouble(lng));
-                        if (marks.containsKey(val)) {
-                            marks.get(val).setCenter(pos);
-                        } else {
-                            Circle localMark = mMap.addCircle(new CircleOptions()
-                                    .center(pos)
-                                    .radius(1000)
-                                    .fillColor(0x44ff0000)
-                                    .strokeColor(0xffff0000)
-                                    .strokeWidth(0));
-                            marks.put(val, localMark);
-                        }
-                    } else {
-                        marks.remove(val);
+            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                if(!marks.containsKey(snapshot.getKey()) && snapshot.getKey() != userId){
+                    String[] latlong = snapshot.child("data").getValue().toString().split(",");
+                    LatLng pos = new LatLng(Double.parseDouble(latlong[0]), Double.parseDouble(latlong[1]));
+                    Circle localMark = mMap.addCircle(new CircleOptions()
+                            .center(pos)
+                            .radius(1000)
+                            .fillColor(0x44ff0000)
+                            .strokeColor(0xffff0000)
+                            .strokeWidth(0));
+                    marks.put(snapshot.getKey(), localMark);
+
+                    assembraCerchi(localMark, snapshot.getKey());
+                    if(assembraFound > 0){
+                        localMark.setRadius(localMark.getRadius()*assembraFound);
+                        assembraFound = 0;
                     }
+
+                    toastMe("added: " + snapshot.getKey());
                 }
             }
 
             @Override
-            public void onCancelled(DatabaseError error) {
-                // Failed to read value
-                //Log.w(TAG, "Failed to read value.", error.toException());
+            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                if(marks.containsKey(snapshot.getKey()) && snapshot.getKey() != userId) {
+                    String[] latlong = snapshot.child("data").getValue().toString().split(",");
+                    LatLng pos = new LatLng(Double.parseDouble(latlong[0]), Double.parseDouble(latlong[1]));
+                    marks.get(snapshot.getKey()).setCenter(pos);
+
+                    assembraCerchi(marks.get(snapshot.getKey()), snapshot.getKey());
+                    if(assembraFound > 0) {
+                        marks.get(snapshot.getKey()).setRadius(marks.get(snapshot.getKey()).getRadius() * assembraFound);
+                        assembraFound = 0;
+                    }
+
+                    toastMe("changed: " + snapshot.getKey());
+                }
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+                if(marks.containsKey(snapshot.getKey()) && snapshot.getKey() != userId) {
+                    marks.get(snapshot.getKey()).setVisible(false);
+                    marks.remove(snapshot.getKey());
+                    toastMe("removed: " + snapshot.getKey());
+                }
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                toastMe("moved");
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                toastMe("cancelled");
             }
         });
     }
+
+    int assembraFound = 0;
+    ArrayList<Circle> found = new ArrayList<>();
+
+    public void assembraCerchi(final Circle localMark, String val){
+        Iterator<Circle> it = marks.values().iterator();
+        while(it.hasNext()){
+            Circle circle = it.next();
+            if(circle.getCenter().longitude-localMark.getCenter().longitude < 0.00002 ||
+                    circle.getCenter().latitude-localMark.getCenter().latitude < 0.00002){
+                //circle.setVisible(false);
+                assembraFound++;
+            } else if (!circle.isVisible() && (circle.getCenter().longitude-localMark.getCenter().longitude > 0.00002 ||
+                    circle.getCenter().latitude-localMark.getCenter().latitude > 0.00002)) {
+                circle.setVisible(true);
+            }
+        }
+    }
+
+    /* vecchia versione (che richiede android Nougat (API 24)):
+    marks.forEach(new BiConsumer<String, Circle>() {
+        @Override
+        public void accept(String s, Circle circle) {
+            if(circle.isVisible() && (circle.getCenter().longitude-localMark.getCenter().longitude < 0.00002 ||
+                    circle.getCenter().latitude-localMark.getCenter().latitude < 0.00002)){
+                marks.get(s).setVisible(false);
+                assembraFound++;
+            } else if (!circle.isVisible() && (circle.getCenter().longitude-localMark.getCenter().longitude > 0.00002 ||
+                    circle.getCenter().latitude-localMark.getCenter().latitude > 0.00002)) {
+                Circle tempMark = marks.get(circle);
+                marks.get(s).setVisible(true);
+            }
+        }
+    });
+
+     */
+
+
     private void toastMe(String str){
         Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
     }
@@ -239,9 +304,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         ValueEventListener eventListener = new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if(!dataSnapshot.hasChild(userId) || dataSnapshot.child(userId).getValue() == null) {
-                    myRef.child(userId).child("data").setValue(myLatLng.latitude + "," + myLatLng.longitude);
-                    myRef.child(userId).child("timestamp").setValue(System.currentTimeMillis());
+                if(!dataSnapshot.hasChild("data") || dataSnapshot.child(userId).getValue() == null) {
+                    Map<String,Object> update = new HashMap<>();
+                    update.put("data", myLatLng.latitude + "," + myLatLng.longitude);
+                    update.put("timestamp", System.currentTimeMillis());
+                    myRef.child(userId).updateChildren(update);
                 } else {
                     userId = generateRandomString();
                 }
@@ -250,7 +317,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 //updateMyLocationOnDatabase();
-                userId = generateRandomString();
+                //userId = generateRandomString();
             }
         };
 
