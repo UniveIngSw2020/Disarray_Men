@@ -20,7 +20,7 @@ public class MainActivity extends MapsActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mNotificationUtils = new NotificationUtils(this);
+//        mNotificationUtils = new NotificationUtils(this);
 
         final EditText editTextTitleAndroid = (EditText) findViewById(R.id.et_android_title);
         final EditText editTextAuthorAndroid = (EditText) findViewById(R.id.et_android_author);
