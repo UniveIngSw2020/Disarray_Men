@@ -16,7 +16,6 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -55,8 +54,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import static com.disarraymen.redzone.UserData.userId;
 import static com.disarraymen.redzone.UserData.userChecked;
+import static com.disarraymen.redzone.UserData.userId;
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
@@ -110,7 +109,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     localMark.setRadius(localMark.getRadius()*assembraFound);
                     assembraFound = 0;
                 }
-                toastMe("added: " + snapshot.getKey());
+                //toastMe("added: " + snapshot.getKey());
             }
         }
 
@@ -126,7 +125,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     marks.get(snapshot.getKey()).setRadius(marks.get(snapshot.getKey()).getRadius() * assembraFound);
                     assembraFound = 0;
                 }
-                toastMe("changed: " + snapshot.getKey());
+                //toastMe("changed: " + snapshot.getKey());
             }
         }
 
@@ -135,16 +134,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             if(marks.containsKey(snapshot.getKey()) && snapshot.getKey() != userId) {
                 marks.get(snapshot.getKey()).setVisible(false);
                 marks.remove(snapshot.getKey());
-                toastMe("removed: " + snapshot.getKey());
+                //toastMe("removed: " + snapshot.getKey());
             }
         }
 
         @Override
-        public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) { toastMe("moved"); }
+        public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) { //toastMe("moved");
+            }
 
         @Override
         public void onCancelled(@NonNull DatabaseError error) {
-            toastMe("cancelled");
+            //toastMe("cancelled");
         }
     };
 
@@ -258,11 +258,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         createUsername();
 
         if (!isPermissionAccess()) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 99);
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 99);
+            setBtnGPS();
         }
-        getCurrentLocation();
-        startLocationUpdates();
+        if (isPermissionAccess()) {
+            getCurrentLocation();
+            startLocationUpdates();
+        }
+
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -282,7 +284,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStop() {
         super.onStop();
-        toastMe("STOPPED");
+        //toastMe("STOPPED");
     }
 
 
@@ -326,7 +328,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         btn2.startAnimation(hide);
         btn2.setClickable(false);
         btn2.setVisibility(View.GONE);
-        startActivity(new Intent(this, MainActivity.class));
+        startActivity(new Intent(this, BluetoothActivity.class));
     }
 
     public void setBtn3() {
@@ -339,24 +341,29 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         //btnGPS.startAnimation(hide);
         //btnGPS.setClickable(true);
         //btnGPS.setVisibility(View.GONE);
-        if(!btnGPSClick) {
-            text1.startAnimation(show3);
-            image1.startAnimation(show3);
-            image2.startAnimation(show3);
-            text1.setVisibility(View.VISIBLE);
-            image1.setVisibility(View.VISIBLE);
-            image2.setVisibility(View.VISIBLE);
-            getFusedLocationProviderClient(this).removeLocationUpdates(mLocationCallback);
-            btnGPSClick = true;
+        if (!isPermissionAccess()) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 99);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 99);
         } else {
-            text1.startAnimation(hide3);
-            image1.startAnimation(hide3);
-            image2.startAnimation(hide3);
-            text1.setVisibility(View.GONE);
-            image1.setVisibility(View.GONE);
-            image2.setVisibility(View.GONE);
-            startLocationUpdates();
-            btnGPSClick = false;
+            if (!btnGPSClick) {
+                text1.startAnimation(show3);
+                image1.startAnimation(show3);
+                image2.startAnimation(show3);
+                text1.setVisibility(View.VISIBLE);
+                image1.setVisibility(View.VISIBLE);
+                image2.setVisibility(View.VISIBLE);
+                getFusedLocationProviderClient(this).removeLocationUpdates(mLocationCallback);
+                btnGPSClick = true;
+            } else {
+                text1.startAnimation(hide3);
+                image1.startAnimation(hide3);
+                image2.startAnimation(hide3);
+                text1.setVisibility(View.GONE);
+                image1.setVisibility(View.GONE);
+                image2.setVisibility(View.GONE);
+                startLocationUpdates();
+                btnGPSClick = false;
+            }
         }
     }
 
@@ -371,7 +378,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         getCurrentLocation();
-        Toast.makeText(this, "latitude:" + currentlatitude + " longitude:" + currentlongitude, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "latitude:" + currentlatitude + " longitude:" + currentlongitude, Toast.LENGTH_SHORT).show();
 
         LatLng locationMarker = new LatLng(currentlatitude, currentlongitude);
         mMap.addMarker(new MarkerOptions()
@@ -443,7 +450,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         String msg = "Updated Location: " +
                 Double.toString(location.getLatitude()) + "," +
                 Double.toString(location.getLongitude());
-        //Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        ////Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         // You can now create a LatLng Object for use with maps
         myLatLng = new LatLng(location.getLatitude(), location.getLongitude());
         updateMyLocationOnDatabase();
@@ -494,7 +501,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     private void toastMe(String str){
-        Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
     }
 
     public void createUsername(){
@@ -510,7 +517,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void updateMyLocationOnDatabase() {
         DatabaseReference userNameRef = myRef.child(userId);
         userNameRef.addListenerForSingleValueEvent(eventListenerUpdate);
-        //Toast.makeText(this, myLatLng.toString(), Toast.LENGTH_SHORT).show();
+        ////Toast.makeText(this, myLatLng.toString(), Toast.LENGTH_SHORT).show();
     }
 
     static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
