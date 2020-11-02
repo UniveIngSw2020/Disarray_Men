@@ -5,4 +5,5 @@
     <string name="line1">Linea 1</string>
     <string name="line2">Linea 2</string>
     <string name="send">Invia</string>
+    <string name="gps_deactivated">ATTENZIONE! GPS disattivato.</string>
 </resources>

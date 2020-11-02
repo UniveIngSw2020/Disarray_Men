@@ -14,6 +14,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -67,8 +69,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private double currentlongitude;
     private LatLng myLatLng;
     private boolean recheckUser = true;
-    FloatingActionButton btn1, btn2, btn3;
-    Animation show, show2, hide, hide2;
+    FloatingActionButton btn1, btn2, btn3, btnGPS;
+    TextView text1;
+    ImageView image1, image2;
+    Animation show, show2, show3, hide, hide2, hide3;
+    boolean btnGPSClick = false;
+
     ValueEventListener checkUsernameListener = new ValueEventListener() {
 
         @Override
@@ -189,6 +195,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         btn2 = (FloatingActionButton) findViewById(R.id.btn2);
         btn3 = (FloatingActionButton) findViewById(R.id.btn3);
 
+        text1 = (TextView) findViewById(R.id.textView);
+        image1 = (ImageView) findViewById(R.id.imageView);
+        image2 = (ImageView) findViewById((R.id.imageView2));
+        btnGPS = (FloatingActionButton) findViewById((R.id.btnGPS));
+
+
         btn1.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(final View v) {
                 setBtn1();
@@ -207,10 +219,18 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        btnGPS.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(final View v) {
+                setBtnGPS();
+            }
+        });
+
         show = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_in_up);
         show2 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_in_up2);
         hide = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_out_down);
         hide2 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_out_down2);
+        show3 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_in_down);
+        hide3 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_out_up);
 
         btn1.startAnimation(show);
         btn1.setClickable(true);
@@ -221,6 +241,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         btn3.startAnimation(hide);
         btn3.setClickable(false);
         btn3.setVisibility(View.GONE);
+
+        btnGPS.startAnimation(show);
+        btnGPS.setClickable(true);
+        btnGPS.setVisibility(View.VISIBLE);
+        text1.startAnimation(hide3);
+        text1.setVisibility(View.GONE);
+        image1.startAnimation(hide3);
+        image1.setVisibility(View.GONE);
+        image2.startAnimation(hide3);
+        image2.setVisibility(View.GONE);
+
 
         database = FirebaseDatabase.getInstance();
         myRef = database.getReference().child("userLocations");
@@ -302,6 +333,31 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         btn3.startAnimation(hide);
         btn3.setClickable(false);
         btn3.setVisibility(View.GONE);
+    }
+
+    public void setBtnGPS() {
+        //btnGPS.startAnimation(hide);
+        //btnGPS.setClickable(true);
+        //btnGPS.setVisibility(View.GONE);
+        if(!btnGPSClick) {
+            text1.startAnimation(show3);
+            image1.startAnimation(show3);
+            image2.startAnimation(show3);
+            text1.setVisibility(View.VISIBLE);
+            image1.setVisibility(View.VISIBLE);
+            image2.setVisibility(View.VISIBLE);
+            getFusedLocationProviderClient(this).removeLocationUpdates(mLocationCallback);
+            btnGPSClick = true;
+        } else {
+            text1.startAnimation(hide3);
+            image1.startAnimation(hide3);
+            image2.startAnimation(hide3);
+            text1.setVisibility(View.GONE);
+            image1.setVisibility(View.GONE);
+            image2.setVisibility(View.GONE);
+            startLocationUpdates();
+            btnGPSClick = false;
+        }
     }
 
 
