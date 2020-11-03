@@ -3,11 +3,20 @@ package com.disarraymen.redzone;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.icu.text.Edits;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
 import android.util.Log;
@@ -21,8 +30,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.gms.common.util.BiConsumer;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -53,7 +65,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
+import static com.disarraymen.redzone.NotificationUtils.notificationManager;
 import static com.disarraymen.redzone.UserData.userChecked;
 import static com.disarraymen.redzone.UserData.userId;
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
@@ -73,6 +87,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     ImageView image1, image2;
     Animation show, show2, show3, hide, hide2, hide3;
     boolean btnGPSClick = false;
+
+    public Intent intent = new Intent();
+
+
+
 
     ValueEventListener checkUsernameListener = new ValueEventListener() {
 
@@ -179,9 +198,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     };
 
 
-
-
-
+    NotificationCompat.Builder assembramento = new NotificationCompat.Builder(this, NotificationUtils.CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_alert)
+            //.setLargeIcon(bitmap)
+            .setContentTitle("Red Zone!")
+            .setContentText("Sei appena entrato in un assembramento!")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            // Set the intent that will fire when the user taps the notification
+            .setContentIntent(NotificationUtils.pendingIntent)
+            .setAutoCancel(true)//Vibration
+            .setColor(Color.RED)
+            .setOnlyAlertOnce(true)
+            .setVibrate(new long[] { 1000, 1000, 1000, 1000, 1000 })
+            //.setSound(Uri.parse("uri://notification.mp3"))
+            .setLights(Color.RED, 3000, 3000);;
 
 
 
@@ -190,6 +220,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_maps);
+
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+        notificationManager = NotificationManagerCompat.from(this);
+        NotificationUtils.pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
+
+
+        //notificationManager.notify(notificationId, assembramento.build());
 
         btn1 = (FloatingActionButton) findViewById(R.id.btn1);
         btn2 = (FloatingActionButton) findViewById(R.id.btn2);
@@ -478,6 +516,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     circle.getCenter().latitude-localMark.getCenter().latitude > 0.00002)) {
                 circle.setVisible(true);
             }
+            if (metersFromLatLng(circle.getCenter(), myLatLng) < 2) {
+                notificationManager.notify(NotificationUtils.notificationId, assembramento.build());
+            }
         }
     }
 
@@ -518,6 +559,22 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         DatabaseReference userNameRef = myRef.child(userId);
         userNameRef.addListenerForSingleValueEvent(eventListenerUpdate);
         ////Toast.makeText(this, myLatLng.toString(), Toast.LENGTH_SHORT).show();
+
+
+    }
+
+    // LatLng to meters, explanation: https://en.wikipedia.org/wiki/Haversine_formula
+    private double metersFromLatLng(LatLng p1, LatLng p2){
+        double R = 6378.137; // Radius of earth in KM
+        double dLat = p2.latitude * Math.PI / 180 - p1.latitude * Math.PI / 180;
+        double dLon = p2.longitude * Math.PI / 180 - p1.longitude * Math.PI / 180;
+        double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(p1.latitude * Math.PI / 180) *
+                        Math.cos(p2.latitude * Math.PI / 180) *
+                        Math.sin(dLon/2) * Math.sin(dLon/2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        double d = R * c;
+        return d * 1000; // meters
     }
 
     static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
