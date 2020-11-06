@@ -6,93 +6,210 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:id="@+id/layoutTemp"
     tools:visibility="visible">
 
 
-    <fragment xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:map="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:id="@+id/map"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
+    <TabHost
+        android:id="@+id/tabhost"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:context=".MapsActivity" />
+        android:layout_height="match_parent">
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/btn2"
-        android:layout_width="90dp"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginEnd="30dp"
-        android:layout_marginBottom="140dp"
-        android:clickable="true"
-        android:enabled="true"
-        app:backgroundTint="#3F51B5"
-        app:elevation="15dp"
-        tools:srcCompat="@android:drawable/stat_sys_data_bluetooth" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/btn3"
-        android:layout_width="90dp"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginEnd="30dp"
-        android:layout_marginBottom="240dp"
-        android:layout_toStartOf="@id/map"
-        android:clickable="true"
-        android:enabled="true"
-        app:backgroundTint="#616161"
-        app:elevation="15dp"
-        tools:srcCompat="@android:drawable/ic_menu_preferences" />
+            <TabWidget
+                android:id="@android:id/tabs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/btn1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginEnd="30dp"
-        android:layout_marginBottom="40dp"
-        android:clickable="true"
-        android:enabled="true"
-        app:backgroundTint="#FFC107"
-        app:elevation="15dp"
-        tools:srcCompat="@android:drawable/ic_input_add" />
+            <FrameLayout
+                android:id="@android:id/tabcontent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/imageView"
+                <LinearLayout
+                    android:id="@+id/tab1"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <fragment
+                            android:id="@+id/map"
+                            class="com.google.android.gms.maps.SupportMapFragment"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent" />
+
+                        <ImageView
+                            android:id="@+id/imageView2"
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:layout_marginStart="10dp"
+                            android:layout_marginTop="5dp"
+                            app:srcCompat="?android:attr/alertDialogIcon" />
+
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:id="@+id/btn4"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="30dp"
+                            android:layout_marginBottom="40dp"
+                            android:clickable="true"
+                            android:enabled="true"
+                            app:backgroundTint="#FFC107"
+                            app:elevation="15dp"
+                            tools:srcCompat="@android:drawable/ic_input_add" />
+
+                        <ImageView
+                            android:id="@+id/imageView"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:background="#FFFFFF" />
+
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:id="@+id/btn2"
+                            android:layout_width="90dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="30dp"
+                            android:layout_marginBottom="140dp"
+                            android:clickable="true"
+                            android:enabled="true"
+                            app:backgroundTint="#3F51B5"
+                            app:elevation="15dp"
+                            tools:srcCompat="@android:drawable/stat_sys_data_bluetooth" />
+
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:id="@+id/btn3"
+                            android:layout_width="90dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="30dp"
+                            android:layout_marginBottom="240dp"
+                            android:clickable="true"
+                            android:enabled="true"
+                            app:backgroundTint="#616161"
+                            app:elevation="15dp"
+                            tools:ignore="NotSibling"
+                            tools:srcCompat="@android:drawable/ic_menu_preferences" />
+
+                        <TextView
+                            android:id="@+id/tabText"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="60dp"
+                            android:autoSizeMaxTextSize="100sp"
+                            android:autoSizeMinTextSize="12sp"
+                            android:autoSizeStepGranularity="4sp"
+                            android:autoSizeTextType="uniform"
+                            android:text="@string/gps_deactivated"
+                            android:textAlignment="center" />
+
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:id="@+id/btnGPS"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:clickable="true"
+                            app:srcCompat="@android:drawable/ic_input_add" />
+                    </FrameLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/tab2"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical">
+
+                        <Button
+                            android:id="@+id/btn5"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Button" />
+
+                        <ListView
+                            android:id="@+id/listView2"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/tab3"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                </LinearLayout>
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+    </TabHost>
+
+    <FrameLayout
+        android:id="@+id/privacyLayout"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:background="#FFFFFF" />
+        android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/imageView2"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="5dp"
-        app:srcCompat="?android:attr/alertDialogIcon" />
+        <View
+            android:id="@+id/view3"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#C6000000" />
 
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_marginStart="60dp"
-        android:text="@string/gps_deactivated"
-        android:textAlignment="center"
-        android:autoSizeMaxTextSize="100sp"
-        android:autoSizeMinTextSize="12sp"
-        android:autoSizeStepGranularity="4sp"
-        android:autoSizeTextType="uniform" />
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/btnGPS"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:clickable="true"
-        app:srcCompat="@android:drawable/ic_input_add" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <WebView
+                    android:id="@+id/webview"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center|center_horizontal|center_vertical"
+                    android:layout_margin="20dp"
+                    android:foregroundGravity="center_vertical|center|center_horizontal">
+
+                </WebView>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <Button
+                        android:id="@+id/accept_button"
+                        android:layout_width="150dp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginLeft="90dp"
+                        android:text="ACCEPT" />
+
+                    <Button
+                        android:id="@+id/decline_button"
+                        android:layout_width="150dp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginRight="90dp"
+                        android:text="DECLINE" />
+                </FrameLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+    </FrameLayout>
 
 </RelativeLayout>

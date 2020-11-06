@@ -6,4 +6,8 @@
     <string name="line2">Linea 2</string>
     <string name="send">Invia</string>
     <string name="gps_deactivated">ATTENZIONE! GPS disattivato.</string>
+    <string name="layoutTemp">LayoutTemp</string>
+
+    <string name="terms"><b>Terms &amp; Conditions</b></string>
+    <string name="Google_Play_Services_link"><a href="https://policies.google.com/terms">Google Play Services</a></string>
 </resources>
