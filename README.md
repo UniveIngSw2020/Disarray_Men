@@ -5,11 +5,11 @@
 <dl>
 ☑ Definizione dei gruppi di lavoro – 4/5 studenti<dd><b>21/09/2020</b></dd>
 ☑ Proposta iniziale <dd><b>29/9/2020</b></dd>
-☑ Piano di Progetto <dd><b>13/10/2020</b></dd>
-☐ Documento di analisi e specifica <dd><b>27/10/2020</b></dd>
-☐ Piano di testing <dd><b>14/11/2020</b></dd>
-☐ Documento di Progettazione <dd><b>09/12/2020</b></dd>
-☐ Codice e messa in linea del sistema <dd><b>15/01/2021</b></dd>
+☑ Piano di Progetto <dd><b>18/10/2020</b></dd>
+☐ Documento di analisi e specifica <dd><b>02/11/2020</b></dd>
+☐ Piano di testing <dd><b>19/11/2020</b></dd>
+☐ Documento di Progettazione <dd><b>14/12/2020</b></dd>
+☐ Codice e messa in linea del sistema <dd><b>??/01/2021</b></dd>
 </dl><br>
 
 ## Slide & Guide:
