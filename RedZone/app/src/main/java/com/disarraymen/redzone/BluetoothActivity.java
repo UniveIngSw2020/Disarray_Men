@@ -2,6 +2,7 @@ package com.disarraymen.redzone;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
@@ -41,6 +42,12 @@ import org.altbeacon.beacon.Region;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import static android.os.AsyncTask.execute;
+import static android.provider.Settings.Global.DEVICE_NAME;
 
 
 public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
@@ -59,8 +66,9 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent
                         .getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                if(device != null && device.getName() != null) {
-                    mDeviceList.add(device.getName() + "\n" + device.getAddress() + "\n" + device.getBondState() + "\n");
+                String deviceToAdd = device.getName() + "\n" + device.getAddress() + "\n" + device.getBondState() + "\n";
+                if(device != null && device.getName() != null && !mDeviceList.contains(deviceToAdd)) {
+                    mDeviceList.add(deviceToAdd);
                 }
                 Log.i("BT", device.getName() + "\n" + device.getAddress());
                 listView.setAdapter(new ArrayAdapter<String>(context,
@@ -86,6 +94,27 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
     NotificationManager notificationManager;
 
+    @SuppressLint("HardwareIds")
+    private String getBluetoothMac(final Context context) {
+
+        String result = null;
+        if (context.checkCallingOrSelfPermission(Manifest.permission.BLUETOOTH)
+                == PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                // Hardware ID are restricted in Android 6+
+                // https://developer.android.com/about/versions/marshmallow/android-6.0-changes.html#behavior-hardware-id
+                // Getting bluetooth mac via reflection for devices with Android 6+
+                result = android.provider.Settings.Secure.getString(context.getContentResolver(),
+                        "bluetooth_address");
+            } else {
+                BluetoothAdapter bta = BluetoothAdapter.getDefaultAdapter();
+                result = bta != null ? bta.getAddress() : "";
+            }
+        }
+        toastMe(result);
+        return result;
+    }
+
     @SuppressLint("ResourceType")
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -94,7 +123,9 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationUtils.pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mNotificationUtils = new NotificationUtils(this);
+        }
 
 
         beaconManager = BeaconManager.getInstanceForApplication(this);
@@ -116,13 +147,13 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
         beaconManager.bind(this);
 
-        Beacon beacon = new Beacon.Builder()
+        @SuppressLint("HardwareIds") Beacon beacon = new Beacon.Builder()
                 .setId1("2f234454-cf6d-4a0f-adf2-f4911ba9ffa6")
                 .setId2("1")
                 .setId3("2")
                 .setManufacturer(0x0118) // Radius Networks.  Change this for other beacon layouts
                 .setTxPower(-59)
-                .setDataFields(Arrays.asList(new Long[] {0l})) // Remove this for beacon layouts without d: fields
+                .setDataFields(Arrays.asList(0l)) // Remove this for beacon layouts without d: fields
                 .build();
         // Change the layout below for other beacon types
         BeaconParser beaconParser = new BeaconParser()
@@ -146,9 +177,9 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         unregisterReceiver(mReceiver);
         beaconManager.unbind(this);
+        super.onDestroy();
     }
 
 
@@ -174,8 +205,22 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
         listView.clearChoices();
         mBluetoothAdapter.startDiscovery();
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-
         registerReceiver(mReceiver, filter);
+    }
+
+    BluetoothDevice bluetoothDevice;
+    private boolean findDevice(String address) {
+        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+        if (pairedDevices.size() > 0) {
+            for (BluetoothDevice device : pairedDevices) {
+                toastMe(device.getAddress()+"-----"+address);
+                if (device.getAddress().equals(address)) {
+                    //bluetoothDevice = device;
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void flipBT() {
@@ -202,11 +247,34 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
         //toastMe("discoverable");
         if (mBluetoothAdapter.getScanMode() !=
                 BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+
             Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-            discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.P){
+                discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 3600);
+                new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            sleep(36000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        ensureDiscoverable();
+                    }
+                }.start();
+            } else{
+                discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
+            }
+
             startActivity(discoverableIntent);
+
         }
     }
+
+
+    NotificationUtils mNotificationUtils;
+    ArrayList<Beacon> beaconsNotified = new ArrayList<>();
+
     protected static final String TAG = "RangingActivity";
     @Override
     public void onBeaconServiceConnect() {
@@ -215,11 +283,20 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
             @Override
             public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
                 if (beacons.size() > 0) {
-                    distance = beacons.iterator().next().getDistance();
+                    Beacon beacon = beacons.iterator().next();
+                    distance = beacon.getDistance();
                     //toastMe("The first beacon I see is about "+distance+" meters away.");
-                    if (distance < 1){
-                        notificationManager.notify(1, distanze.build());
-                        toastMe(String.valueOf(distance));
+                    if (!beaconsNotified.contains(beacon) && distance < 1 && !findDevice(beacon.getBluetoothAddress())){
+                        beaconsNotified.add(beacon);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            Notification.Builder nb = mNotificationUtils.getAndroidChannelNotification("Red Zone!", "Sei troppo vicino a un'altro soggetto!");
+                            mNotificationUtils.getManager().notify(1, nb.build());
+                        } else {
+                            notificationManager.notify(1, distanze.build());
+                        }
+                        //toastMe(String.valueOf(distance));
+                    } else if (beaconsNotified.contains(beacon) && distance > 1) {
+                        beaconsNotified.remove(beacon);
                     }
                     //Log.i(TAG, "The first beacon I see is about "+beacons.iterator().next().getDistance()+" meters away.");
                 }

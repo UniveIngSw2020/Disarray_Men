@@ -3,6 +3,8 @@ package com.disarraymen.redzone;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -15,6 +17,7 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
+import android.service.notification.StatusBarNotification;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
@@ -112,6 +115,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     };
 
     int raggioCerchio = 1000;
+    boolean onDestroyVar = false;
     ChildEventListener updateOthersLocationsListener = new ChildEventListener() {
         @Override
         public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
@@ -127,38 +131,37 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 localMark.setTag(snapshot.getKey());
                 marks.put(snapshot.getKey(), localMark);
 
-                assembraCerchio(localMark, snapshot.getKey());
-                if(assembraFound > 1){
-                    localMark.setRadius(raggioCerchio*assembraFound);
-                    assembraFound = 1;
-                }
                 //toastMe("added: " + snapshot.getKey());
             }
+            assembraCerchi();
         }
 
         @Override
         public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
             if(marks.containsKey(snapshot.getKey()) && snapshot.getKey() != userId) {
                 String[] latlong = snapshot.child("data").getValue().toString().split(",");
                 LatLng pos = new LatLng(Double.parseDouble(latlong[0]), Double.parseDouble(latlong[1]));
-                marks.get(snapshot.getKey()).setCenter(pos);
-
-                assembraCerchio(marks.get(snapshot.getKey()), snapshot.getKey());
-                if(assembraFound > 1) {
-                    marks.get(snapshot.getKey()).setRadius(raggioCerchio * assembraFound);
-                    assembraFound = 1;
+                if(metersFromLatLng(marks.get(snapshot.getKey()).getCenter(), pos) > 1) {
+                    marks.get(snapshot.getKey()).setCenter(pos);
                 }
                 //toastMe("changed: " + snapshot.getKey());
             }
+            assembraCerchi();
         }
-
         @Override
         public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+            if(!onDestroyVar && snapshot.getKey().equals(userId)) {
+                Map<String,Object> update = new HashMap<>();
+                update.put("data", myLatLng.latitude + "," + myLatLng.longitude);
+                update.put("timestamp", System.currentTimeMillis());
+                myRef.child(userId).updateChildren(update);
+            }
             if(marks.containsKey(snapshot.getKey()) && snapshot.getKey() != userId) {
                 marks.get(snapshot.getKey()).setVisible(false);
                 marks.remove(snapshot.getKey());
-                assembraCerchi();
                 //toastMe("removed: " + snapshot.getKey());
+                assembraCerchi();
             }
         }
 
@@ -192,37 +195,56 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             //userId = generateRandomString();
         }
     };
-
+    LatLng myOldLatLng=null;
+    NotificationUtils mNotificationUtils;
     LocationCallback mLocationCallback = new LocationCallback() {
         @Override
         public void onLocationResult(LocationResult locationResult) {
             // do work here
-            onLocationChanged(locationResult.getLastLocation());
-            updateOthersLocation();
             getCurrentLocation();
 
+            if(myOldLatLng == null || metersFromLatLng(myLatLng, myOldLatLng) > 1) {
+                StatusBarNotification[] notifications = new StatusBarNotification[0];
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    notifications = notificationManager.getActiveNotifications();
+                }
 
-            myMarker.setPosition(myLatLng);
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(myLatLng));
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLatLng, 12.0f));
+                myOldLatLng = myLatLng;
+                onLocationChanged(locationResult.getLastLocation());
+                myMarker.setPosition(myLatLng);
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(myLatLng));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLatLng, 12.0f));
+
+                for (StatusBarNotification notification : notifications) {
+                    if (notification.getId() == 101) {
+                        return;
+                    }
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Notification.Builder nb = mNotificationUtils.getAndroidChannelNotification("Red Zone!", "Sei appena entrato in un assembramento!");
+                    mNotificationUtils.getManager().notify(101, nb.build());
+                } else {
+                    notificationManager.notify(101, assembramento.build());
+                }
+            }
         }
     };
     PendingIntent pendingIntent;
 
-    NotificationCompat.Builder assembramento = new NotificationCompat.Builder(this, NotificationUtils.CHANNEL_ID)
+    NotificationCompat.Builder assembramento = new NotificationCompat.Builder(this)
             .setSmallIcon(R.mipmap.ic_alert)
             //.setLargeIcon(bitmap)
             .setContentTitle("Red Zone!")
             .setContentText("Sei appena entrato in un assembramento!")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            // Set the intent that will fire when the user taps the notification
-            .setContentIntent(pendingIntent)
             .setAutoCancel(true)//Vibration
             .setColor(Color.RED)
             .setOnlyAlertOnce(true)
             .setVibrate(new long[] { 1000, 1000, 1000, 1000 })
             //.setSound(Uri.parse("uri://notification.mp3"))
             .setLights(Color.RED, 3000, 3000);
+
 
 
     FrameLayout frameLayout;
@@ -233,9 +255,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        System.out.println("startAct");
+
         setContentView(R.layout.activity_maps);
         Intent intent = new Intent(this, BluetoothActivity.class);
         startActivity(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mNotificationUtils = new NotificationUtils(this);
+        }
 
         pendingIntent = PendingIntent.getActivity(this, 0,
                 new Intent(this, MapsActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
@@ -293,11 +320,21 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     Looper mapsLooper = Looper.myLooper();
 
+
     @Override
-    protected void onStop() {
-        super.onStop();
-        //toastMe("STOPPED");
+    protected void onDestroy() {
+        myRef.removeEventListener(checkUsernameListener);
+        myRef.removeEventListener(updateOthersLocationsListener);
+        myRef.removeEventListener(eventListenerUpdate);
+        DatabaseReference.CompletionListener completionListener = new DatabaseReference.CompletionListener() {
+            @Override
+            public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference ref) {
+                MapsActivity.super.onDestroy();
+            }
+        };
+        myRef.child(userId).removeValue(completionListener);
     }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -485,6 +522,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (!isPermissionAccess()) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 99);
             //ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 99);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 99);
 
         } else {
             if (!btnGPSClick) {
@@ -584,6 +622,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // new Google API SDK v11 uses getFusedLocationProviderClient(this)
         getFusedLocationProviderClient(this).requestLocationUpdates(mLocationRequest, mLocationCallback, mapsLooper);
+        updateOthersLocation();
     }
 
 
@@ -594,6 +633,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Double.toString(location.getLongitude());
         ////Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         // You can now create a LatLng Object for use with maps
+
         myLatLng = new LatLng(location.getLatitude(), location.getLongitude());
         updateMyLocationOnDatabase();
     }
@@ -608,25 +648,21 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     int assembraFound = 1;
     ArrayList<Circle> found = new ArrayList<>();
 
-    public void assembraCerchio(final Circle localMark, String val){
-        Iterator<Circle> it = marks.values().iterator();
-        while(it.hasNext()){
-            Circle circle = it.next();
-            if(circle.getTag() != val) {
-                if (circle.getCenter().longitude - localMark.getCenter().longitude < 0.00002 ||
-                        circle.getCenter().latitude - localMark.getCenter().latitude < 0.00002) {
-                    circle.setVisible(false);
-                    assembraFound++;
-                } else if (!circle.isVisible() && (circle.getCenter().longitude - localMark.getCenter().longitude > 0.00002 ||
-                        circle.getCenter().latitude - localMark.getCenter().latitude > 0.00002)) {
-                    circle.setVisible(true);
-                }
-            }
-            if (metersFromLatLng(circle.getCenter(), myLatLng) < 2) {
-                notificationManager.notify(0, assembramento.build());
-            }
-        }
 
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "0"; //getString("R.string.channel_name");
+            String description = "1"; //getString("R.string.channel_description");
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel("com.disarraymen.redzone", name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 
     /* vecchia versione (che richiede android Nougat (API 24)):
@@ -649,7 +685,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     private void toastMe(String str){
-        //Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
     }
 
     public void createUsername(){
@@ -665,7 +701,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void updateMyLocationOnDatabase() {
         DatabaseReference userNameRef = myRef.child(userId);
         userNameRef.addListenerForSingleValueEvent(eventListenerUpdate);
-        Toast.makeText(this, myLatLng.toString(), Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, myLatLng.toString(), Toast.LENGTH_SHORT).show();
 
 
     }
@@ -674,6 +710,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         Iterator<Circle> it1 = marks.values().iterator();
         int assembraMiniFound = 0;
         String circleKey = null;
+        boolean notified = false;
         while (it1.hasNext()) {
             Circle circle1 = it1.next();
             Iterator<Circle> it2 = marks.values().iterator();
@@ -681,19 +718,21 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Circle circle2 = it2.next();
                 if (circle1 != circle2 &&
                         circle1.getCenter().longitude - circle2.getCenter().longitude < 0.00002 ||
-                        circle1.getCenter().latitude - circle2.getCenter().latitude < 0.00002) {
+                        circle1.getCenter().latitude - circle2.getCenter().latitude < 0.00002
+                        && circle2.getTag() != userId) {
                     assembraMiniFound++;
                     circle2.setVisible(false);
                     circleKey = (String) circle1.getTag();
+                } else if (circleKey == null) {
+                    circleKey = (String) circle1.getTag();
                 }
             }
-            if(assembraMiniFound > 0){
+            if(assembraMiniFound == 0){
+                marks.get(circleKey).setVisible(true);
+            } else if(assembraMiniFound > 0){
                 marks.get(circleKey).setVisible(true);
                 marks.get(circleKey).setRadius(raggioCerchio*assembraMiniFound);
                 assembraMiniFound = 0;
-            }
-            if (metersFromLatLng(circle1.getCenter(), myLatLng) < 2) {
-                notificationManager.notify(0, assembramento.build());
             }
         }
     }
