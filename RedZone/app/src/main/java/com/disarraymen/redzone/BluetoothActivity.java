@@ -1,6 +1,5 @@
 package com.disarraymen.redzone;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -13,38 +12,33 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
-import android.widget.Button;
-import android.widget.ListView;
 import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
 
 import org.altbeacon.beacon.Beacon;
 import org.altbeacon.beacon.BeaconConsumer;
 import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.BeaconParser;
 import org.altbeacon.beacon.BeaconTransmitter;
-import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 
 public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
     BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-    private ArrayList<String> mDeviceList = new ArrayList<String>();
+    private ArrayList<String> mDeviceList;
     private BeaconManager beaconManager;
     protected double distance = 0;
     NotificationUtils mNotificationUtils;
@@ -57,11 +51,12 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent
                         .getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                String deviceToAdd = device.getName() + "\n" + device.getAddress() + "\n" + device.getBondState() + "\n";
-                if(device != null && device.getName() != null && !mDeviceList.contains(deviceToAdd)) {
-                    mDeviceList.add(deviceToAdd);
+                if(device != null && device.getName() != null) {
+                    String deviceToAdd = device.getName() + "\n" + device.getAddress() + "\n" + device.getBondState() + "\n";
+                    if(!mDeviceList.contains(deviceToAdd)) {
+                        mDeviceList.add(deviceToAdd);
+                    }
                 }
-                //Log.i("BT", device.getName() + "\n" + device.getAddress());
             }
         }
     };
@@ -80,6 +75,10 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
             .setLights(Color.RED, 3000, 3000);
 
     NotificationManager notificationManager;
+
+    public BluetoothActivity() {
+        mDeviceList = new ArrayList<>();
+    }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -106,7 +105,7 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
                 .setId3("2")
                 .setManufacturer(0x0118) // Radius Networks.  Change this for other beacon layouts
                 .setTxPower(-59)
-                .setDataFields(Arrays.asList(0l)) // Remove this for beacon layouts without d: fields
+                .setDataFields(Collections.singletonList(0L)) // Remove this for beacon layouts without d: fields
                 .build();
         // Change the layout below for other beacon types
         BeaconParser beaconParser = new BeaconParser()
@@ -133,23 +132,6 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
         super.onDestroy();
     }
 
-    public void setBtn4() {
-
-        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (mBluetoothAdapter == null) {
-            // Device does not support Bluetooth
-            toastMe("Device does not support Bluetooth");
-        } else if (!mBluetoothAdapter.isEnabled()) {
-            // Bluetooth is not enabled
-            flipBT();
-            toastMe("Bluetooth is not enabled :)");
-        } else {
-            // Bluetooth is enabled
-            checkBluetoothDevices();
-            toastMe("Bluetooth is enabled ");
-        }
-    }
-
     public void checkBluetoothDevices() {
         mDeviceList.clear();
         mBluetoothAdapter.startDiscovery();
@@ -157,7 +139,6 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
         registerReceiver(mReceiver, filter);
     }
 
-    BluetoothDevice bluetoothDevice;
     private boolean findDevice(String address) {
         Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
         if (pairedDevices.size() > 0) {
@@ -171,20 +152,6 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
         return false;
     }
 
-    private void flipBT() {
-        if (mBluetoothAdapter.isEnabled()) {
-            mBluetoothAdapter.disable();
-        } else {
-            mBluetoothAdapter.enable();
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, 98);
-        }
-    }
-
-
-    private boolean isBTPermissionAccess() {
-        return (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED);
-    }
 
     private void toastMe(String str){
         Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
@@ -217,29 +184,28 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
     @Override
     public void onBeaconServiceConnect() {
         beaconManager.removeAllRangeNotifiers();
-        beaconManager.addRangeNotifier(new RangeNotifier() {
-            @Override
-            public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
-                if (beacons.size() > 0) {
-                    Beacon beacon = beacons.iterator().next();
-                    distance = beacon.getDistance();
-                    if (!beaconsNotified.contains(beacon) && distance < 1 && !findDevice(beacon.getBluetoothAddress())){
-                        beaconsNotified.add(beacon);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            Notification.Builder nb = mNotificationUtils.getAndroidChannelNotification("Red Zone!", "Sei troppo vicino a un'altro soggetto!");
-                            mNotificationUtils.getManager().notify(1, nb.build());
-                        } else {
-                            notificationManager.notify(1, distanze.build());
-                        }
-                    } else if (beaconsNotified.contains(beacon) && distance > 1) {
-                        beaconsNotified.remove(beacon);
+        beaconManager.addRangeNotifier((beacons, region) -> {
+            if (beacons.size() > 0) {
+                Beacon beacon = beacons.iterator().next();
+                distance = beacon.getDistance();
+                if (!beaconsNotified.contains(beacon) && distance < 1 && !findDevice(beacon.getBluetoothAddress())){
+                    beaconsNotified.add(beacon);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        Notification.Builder nb = mNotificationUtils.getAndroidChannelNotification("Red Zone!", "Sei troppo vicino a un'altro soggetto!");
+                        mNotificationUtils.getManager().notify(1, nb.build());
+                    } else {
+                        notificationManager.notify(1, distanze.build());
                     }
+                } else if (beaconsNotified.contains(beacon) && distance > 1) {
+                    beaconsNotified.remove(beacon);
                 }
             }
         });
         try {
             beaconManager.startRangingBeaconsInRegion(new Region("myRangingUniqueId", null, null, null));
-        } catch (RemoteException e) {    }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
-    
+
 }

@@ -6,28 +6,19 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.ContextWrapper;
-import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
 
 import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
-
-import com.google.android.gms.maps.OnMapReadyCallback;
 
 public class NotificationUtils extends ContextWrapper {
 
     static final String CHANNEL_ID = "default";
-    public static final String ANDROID_CHANNEL_ID = "com.chikeandroid.tutsplustalerts.ANDROID";
+    public static final String ANDROID_CHANNEL_ID = "com.disarraymen.redzone.ANDROID";
     public static final String ANDROID_CHANNEL_NAME = "ANDROID CHANNEL";
-    public static int notificationId = 0;
     private NotificationManager mManager;
 
     static PendingIntent pendingIntent;
-    //    Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher_background);
-
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     public NotificationUtils(Context base) {

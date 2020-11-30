@@ -4,7 +4,6 @@ package com.disarraymen.redzone;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
@@ -19,7 +18,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
 import android.service.notification.StatusBarNotification;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -29,17 +27,14 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TabHost;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
@@ -55,8 +50,6 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -65,10 +58,10 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.disarraymen.redzone.UserData.userChecked;
 import static com.disarraymen.redzone.UserData.userId;
@@ -82,7 +75,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     Button accept_button, decline_button, blt, gps, exit;
     TextView text1;
     ImageView image1, image2;
-    Animation show, show2, show3, hide, hide2, hide3;
+    Animation show, hide;
     FrameLayout frameLayout;
 
     // Mappa
@@ -91,8 +84,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LatLng myLatLng;
     private LatLng myOldLatLng;
     private double currentlatitude, currentlongitude;
-    private LocationManager locationManager;
-    HashMap<String, Circle> marks = new HashMap();
+    HashMap<String, Circle> marks = new HashMap<>();
 
     // Database
     public FirebaseDatabase database;
@@ -107,7 +99,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     // Altro
     Looper mapsLooper = Looper.myLooper();
-    private boolean recheckUser = true, btnGPSClick = false, onDestroyVar = false;
+    private boolean recheckUser = true;
+    private boolean btnGPSClick = false;
     private int raggioCerchio = 1000;
     static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     static SecureRandom rnd = new SecureRandom();
@@ -130,8 +123,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     ChildEventListener updateOthersLocationsListener = new ChildEventListener() {
         @Override
         public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-            if(!marks.containsKey(snapshot.getKey()) && snapshot.getKey() != userId){
-                String[] latlong = snapshot.child("data").getValue().toString().split(",");
+            if(!marks.containsKey(snapshot.getKey()) && !Objects.equals(snapshot.getKey(), userId)){
+                String[] latlong = Objects.requireNonNull(snapshot.child("data").getValue()).toString().split(",");
                 LatLng pos = new LatLng(Double.parseDouble(latlong[0]), Double.parseDouble(latlong[1]));
                 Circle localMark = mMap.addCircle(new CircleOptions()
                         .center(pos)
@@ -147,25 +140,25 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         @Override
         public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-            if(marks.containsKey(snapshot.getKey()) && snapshot.getKey() != userId) {
-                String[] latlong = snapshot.child("data").getValue().toString().split(",");
+            if(marks.containsKey(snapshot.getKey()) && !Objects.equals(snapshot.getKey(), userId)) {
+                String[] latlong = Objects.requireNonNull(snapshot.child("data").getValue()).toString().split(",");
                 LatLng pos = new LatLng(Double.parseDouble(latlong[0]), Double.parseDouble(latlong[1]));
-                if(metersFromLatLng(marks.get(snapshot.getKey()).getCenter(), pos) > 1) {
-                    marks.get(snapshot.getKey()).setCenter(pos);
+                if(metersFromLatLng(Objects.requireNonNull(marks.get(snapshot.getKey())).getCenter(), pos) > 1) {
+                    Objects.requireNonNull(marks.get(snapshot.getKey())).setCenter(pos);
                 }
             }
             assembraCerchi();
         }
         @Override
         public void onChildRemoved(@NonNull DataSnapshot snapshot) {
-            if(!onDestroyVar && snapshot.getKey().equals(userId)) {
+            if(Objects.equals(snapshot.getKey(), userId)) {
                 Map<String,Object> update = new HashMap<>();
                 update.put("data", myLatLng.latitude + "," + myLatLng.longitude);
                 update.put("timestamp", System.currentTimeMillis());
                 myRef.child(userId).updateChildren(update);
             }
-            if(marks.containsKey(snapshot.getKey()) && snapshot.getKey() != userId) {
-                marks.get(snapshot.getKey()).setVisible(false);
+            if(marks.containsKey(snapshot.getKey()) && !Objects.equals(snapshot.getKey(), userId)) {
+                Objects.requireNonNull(marks.get(snapshot.getKey())).setVisible(false);
                 marks.remove(snapshot.getKey());
                 assembraCerchi();
             }
@@ -258,9 +251,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         pendingIntent = PendingIntent.getActivity(this, 0,
                 new Intent(this, MapsActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
-        frameLayout = (FrameLayout) findViewById(R.id.privacyLayout);
+        frameLayout = findViewById(R.id.privacyLayout);
 
-        TabHost tabs = (TabHost) findViewById(R.id.tabhost);
+        TabHost tabs = findViewById(R.id.tabhost);
         tabs.setup();
         TabHost.TabSpec spec = tabs.newTabSpec("tag1");
         spec.setContent(R.id.tab1);
@@ -275,20 +268,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         boolean privacy = prefs.getBoolean("privacy", false);
 
         if (!privacy){
-            WebView terms = (WebView) findViewById(R.id.webview);
+            WebView terms = findViewById(R.id.webview);
             terms.loadUrl("http://testesercitazioni.altervista.org/Disarray_Men/RedZone/Docs/terms___coditions.html");
-            accept_button = (Button) findViewById(R.id.accept_button);
-            decline_button = (Button) findViewById(R.id.decline_button);
-            accept_button.setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(final View v) {
-                    acceptBtn();
-                }
-            });
-            decline_button.setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(final View v) {
-                    declineBtn();
-                }
-            });
+            accept_button = findViewById(R.id.accept_button);
+            decline_button = findViewById(R.id.decline_button);
+            accept_button.setOnClickListener(v -> acceptBtn());
+            decline_button.setOnClickListener(v -> declineBtn());
         } else {
             start();
         }
@@ -299,12 +284,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         myRef.removeEventListener(checkUsernameListener);
         myRef.removeEventListener(updateOthersLocationsListener);
         myRef.removeEventListener(eventListenerUpdate);
-        DatabaseReference.CompletionListener completionListener = new DatabaseReference.CompletionListener() {
-            @Override
-            public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference ref) {
-                MapsActivity.super.onDestroy();
-            }
-        };
+        DatabaseReference.CompletionListener completionListener = (error, ref) -> MapsActivity.super.onDestroy();
         myRef.child(userId).removeValue(completionListener);
     }
 
@@ -314,47 +294,26 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationUtils.pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
 
-        blt = (Button) findViewById(R.id.blt);
-        gps = (Button) findViewById(R.id.gps);
-        exit = (Button) findViewById(R.id.exit);
+        blt = findViewById(R.id.blt);
+        gps = findViewById(R.id.gps);
+        exit = findViewById(R.id.exit);
 
-        text1 = (TextView) findViewById(R.id.tabText);
-        image1 = (ImageView) findViewById(R.id.imageView);
-        image2 = (ImageView) findViewById((R.id.imageView2));
+        text1 = findViewById(R.id.tabText);
+        image1 = findViewById(R.id.imageView);
+        image2 = findViewById((R.id.imageView2));
 
-        gps.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View v) {
-                setBtnGPS();
-            }
-        });
+        gps.setOnClickListener(v -> setBtnGPS());
+        blt.setOnClickListener(v -> flipBT());
+        exit.setOnClickListener(v -> exit());
 
-        blt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View v) {
-                flipBT();
-            }
-        });
+        show = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_in_down);
+        hide = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_out_up);
 
-        exit.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View v) {
-                exit();
-            }
-        });
-
-        show = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_in_up);
-        show2 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_in_up2);
-        hide = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_out_down);
-        hide2 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_out_down2);
-        show3 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_in_down);
-        hide3 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_out_up);
-
-        text1.startAnimation(hide3);
+        text1.startAnimation(hide);
         text1.setVisibility(View.GONE);
-        image1.startAnimation(hide3);
+        image1.startAnimation(hide);
         image1.setVisibility(View.GONE);
-        image2.startAnimation(hide3);
+        image2.startAnimation(hide);
         image2.setVisibility(View.GONE);
 
         database = FirebaseDatabase.getInstance();
@@ -366,11 +325,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             getCurrentLocation();
             startLocationUpdates();
-            locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
             // Obtain the SupportMapFragment and get notified when the map is ready to be used.
             SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                     .findFragmentById(R.id.map);
+            assert mapFragment != null;
             mapFragment.getMapAsync(this);
         }
     }
@@ -437,9 +396,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void onLocationChanged(Location location) {
         // New location has now been determined
-        String msg = "Updated Location: " +
-                Double.toString(location.getLatitude()) + "," +
-                Double.toString(location.getLongitude());
         myLatLng = new LatLng(location.getLatitude(), location.getLongitude());
         updateMyLocationOnDatabase();
     }
@@ -465,21 +421,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     // -------------------------------------- Altre Funzioni ---------------------------------------
 
-    private void toastMe(String str){
-        Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         getCurrentLocation();
         startLocationUpdates();
-        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
+        assert mapFragment != null;
         mapFragment.getMapAsync(this);
     }
 
@@ -509,12 +461,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         Iterator<Circle> it1 = marks.values().iterator();
         int assembraMiniFound = 0;
         String circleKey = null;
-        boolean notified = false;
         while (it1.hasNext()) {
             Circle circle1 = it1.next();
-            Iterator<Circle> it2 = marks.values().iterator();
-            while(it2.hasNext()){
-                Circle circle2 = it2.next();
+            for (Circle circle2 : marks.values()) {
                 if (circle1 != circle2 &&
                         circle1.getCenter().longitude - circle2.getCenter().longitude < 0.00002 ||
                         circle1.getCenter().latitude - circle2.getCenter().latitude < 0.00002
@@ -527,10 +476,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }
             if(assembraMiniFound == 0){
-                marks.get(circleKey).setVisible(true);
+                Objects.requireNonNull(marks.get(circleKey)).setVisible(true);
             } else if(assembraMiniFound > 0){
-                marks.get(circleKey).setVisible(true);
-                marks.get(circleKey).setRadius(raggioCerchio*assembraMiniFound);
+                Objects.requireNonNull(marks.get(circleKey)).setVisible(true);
+                Objects.requireNonNull(marks.get(circleKey)).setRadius(raggioCerchio*assembraMiniFound);
                 assembraMiniFound = 0;
             }
         }
@@ -567,21 +516,23 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void setBtnGPS() {
         if (!isPermissionAccess()) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 99);
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 99);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 99);
+            }
         } else {
             if (!btnGPSClick) {
-                text1.startAnimation(show3);
-                image1.startAnimation(show3);
-                image2.startAnimation(show3);
+                text1.startAnimation(show);
+                image1.startAnimation(show);
+                image2.startAnimation(show);
                 text1.setVisibility(View.VISIBLE);
                 image1.setVisibility(View.VISIBLE);
                 image2.setVisibility(View.VISIBLE);
                 getFusedLocationProviderClient(this).removeLocationUpdates(mLocationCallback);
                 btnGPSClick = true;
             } else {
-                text1.startAnimation(hide3);
-                image1.startAnimation(hide3);
-                image2.startAnimation(hide3);
+                text1.startAnimation(hide);
+                image1.startAnimation(hide);
+                image2.startAnimation(hide);
                 text1.setVisibility(View.GONE);
                 image1.setVisibility(View.GONE);
                 image2.setVisibility(View.GONE);
