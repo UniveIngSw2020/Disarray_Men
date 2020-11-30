@@ -431,6 +431,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(final View v) {
                 finish();
+                onDestroy();
                 System.exit(0);
             }
         });
