@@ -2,15 +2,22 @@
 
 ## Scadenze:
 
-<dl>
-☑ Definizione dei gruppi di lavoro – 4/5 studenti<dd><b>21/09/2020</b></dd>
-☑ Proposta iniziale <dd><b>29/9/2020</b></dd>
-☑ Piano di Progetto <dd><b>18/10/2020</b></dd>
-☐ Documento di analisi e specifica <dd><b>02/11/2020</b></dd>
-☐ Piano di testing <dd><b>19/11/2020</b></dd>
-☐ Documento di Progettazione <dd><b>14/12/2020</b></dd>
-☐ Codice e messa in linea del sistema <dd><b>??/01/2021</b></dd>
-</dl><br>
+
+				HTML
+				
+					
+				
+				
+						
+				
+			
+☑ Definizione dei gruppi di lavoro – 4/5 studenti21/09/2020
+☑ Proposta iniziale 29/9/2020
+☑ Piano di Progetto 18/10/2020
+☑ Documento di analisi e specifica 02/11/2020
+☑ Piano di testing 19/11/2020
+☐ Documento di Progettazione 14/12/2020
+☐ Codice e messa in linea del sistema ??/01/2021
 
 ## Slide & Guide:
 
