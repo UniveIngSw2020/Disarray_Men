@@ -5,7 +5,7 @@
     <string name="line1">Linea 1</string>
     <string name="line2">Linea 2</string>
     <string name="send">Invia</string>
-    <string name="gps_deactivated">ATTENZIONE! GPS disattivato.</string>
+    <string name="gps_deactivated">ATTENZIONE! Rilevamento posizione GPS disattivata.</string>
     <string name="layoutTemp">LayoutTemp</string>
 
     <string name="terms"><b>Terms &amp; Conditions</b></string>

@@ -7,6 +7,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -84,7 +85,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private double currentlongitude;
     private LatLng myLatLng;
     private boolean recheckUser = true;
-    FloatingActionButton btn1, btn2, btn3, btnGPS;
+    //FloatingActionButton btn1, btn2, btn3, btnGPS;
+    Button blt, gps, exit;
     Button accept_button, decline_button;
     TextView text1;
     ImageView image1, image2;
@@ -278,13 +280,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         tabs.addTab(spec);
         spec = tabs.newTabSpec("tag2");
         spec.setContent(R.id.tab2);
-        spec.setIndicator("Bluetooth");
+        spec.setIndicator("Settings");
         tabs.addTab(spec);
         /*
         spec = tabs.newTabSpec("tag3");
         spec.setContent(R.id.tab3);
         spec.setIndicator("Settings");
         tabs.addTab(spec);*/
+
+
 
         SharedPreferences prefs = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE);
         boolean privacy = prefs.getBoolean("privacy", false);
@@ -366,17 +370,21 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
         //notificationManager.notify(notificationId, assembramento.build());
-
+/*
         btn1 = (FloatingActionButton) findViewById(R.id.btn4);
         btn2 = (FloatingActionButton) findViewById(R.id.btn2);
         btn3 = (FloatingActionButton) findViewById(R.id.btn3);
+*/
+        blt = (Button) findViewById(R.id.blt);
+        gps = (Button) findViewById(R.id.gps);
+        exit = (Button) findViewById(R.id.exit);
 
         text1 = (TextView) findViewById(R.id.tabText);
         image1 = (ImageView) findViewById(R.id.imageView);
         image2 = (ImageView) findViewById((R.id.imageView2));
-        btnGPS = (FloatingActionButton) findViewById((R.id.btnGPS));
+        //btnGPS = (FloatingActionButton) findViewById((R.id.btnGPS));
 
-
+/*
         btn1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View v) {
@@ -404,6 +412,31 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 setBtnGPS();
             }
         });
+*/
+        gps.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(final View v) {
+                setBtnGPS();
+            }
+        });
+
+        blt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(final View v) {
+                flipBT();
+            }
+        });
+
+        exit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(final View v) {
+                finish();
+                System.exit(0);
+            }
+        });
+
+
+
 
         show = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_in_up);
         show2 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_in_up2);
@@ -411,7 +444,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         hide2 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_out_down2);
         show3 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_in_down);
         hide3 = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.slide_out_up);
-
+/*
         btn1.startAnimation(show);
         btn1.setClickable(true);
         btn1.setVisibility(View.VISIBLE);
@@ -421,10 +454,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         btn3.startAnimation(hide);
         btn3.setClickable(false);
         btn3.setVisibility(View.GONE);
-
-        btnGPS.startAnimation(show);
-        btnGPS.setClickable(true);
-        btnGPS.setVisibility(View.VISIBLE);
+*/
+        //btnGPS.startAnimation(show);
+        //btnGPS.setClickable(true);
+        //btnGPS.setVisibility(View.VISIBLE);
         text1.startAnimation(hide3);
         text1.setVisibility(View.GONE);
         image1.startAnimation(hide3);
@@ -452,6 +485,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    private void flipBT() {
+        if (BluetoothAdapter.getDefaultAdapter().isEnabled()) {
+            BluetoothAdapter.getDefaultAdapter().disable();
+        } else {
+            BluetoothAdapter.getDefaultAdapter().enable();
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, 98);
+        }
+    }
+
 
 
 
@@ -463,10 +506,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         start();
 
     }
+
     public void declineBtn() {
-        btn2.startAnimation(hide);
-        btn2.setClickable(false);
-        btn2.setVisibility(View.GONE);
+        //btn2.startAnimation(hide);
+        //btn2.setClickable(false);
+        //btn2.setVisibility(View.GONE);
         startActivity(new Intent(this, BluetoothActivity.class));
     }
 
@@ -480,7 +524,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
-
+/*
     public void setBtn1() {
         //btn1.startAnimation(hide);
         //btn1.setClickable(false);
@@ -514,7 +558,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         btn3.setClickable(false);
         btn3.setVisibility(View.GONE);
     }
-
+*/
     public void setBtnGPS() {
         //btnGPS.startAnimation(hide);
         //btnGPS.setClickable(true);

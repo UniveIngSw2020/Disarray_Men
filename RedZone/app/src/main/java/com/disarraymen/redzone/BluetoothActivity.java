@@ -71,8 +71,11 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
                     mDeviceList.add(deviceToAdd);
                 }
                 Log.i("BT", device.getName() + "\n" + device.getAddress());
+                /*
                 listView.setAdapter(new ArrayAdapter<String>(context,
                         android.R.layout.simple_list_item_1, mDeviceList));
+
+                 */
             }
         }
     };
@@ -129,7 +132,7 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
 
         beaconManager = BeaconManager.getInstanceForApplication(this);
-
+/*
         btn4 = (Button) findViewById(R.id.btn5);
         btn4.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(final View v) {
@@ -140,7 +143,7 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
         btn4.setVisibility(View.VISIBLE);
 
         listView = (ListView) findViewById(R.id.listView2);
-
+*/
         checkBluetoothDevices();
 
         ensureDiscoverable();
@@ -202,7 +205,7 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
     public void checkBluetoothDevices() {
         mDeviceList.clear();
-        listView.clearChoices();
+//        listView.clearChoices();
         mBluetoothAdapter.startDiscovery();
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(mReceiver, filter);
@@ -224,13 +227,13 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
     }
 
     private void flipBT() {
-        //if (mBluetoothAdapter.isEnabled()) {
-            //mBluetoothAdapter.disable();
-        //} else {
-            //mBluetoothAdapter.enable();
+        if (mBluetoothAdapter.isEnabled()) {
+            mBluetoothAdapter.disable();
+        } else {
+            mBluetoothAdapter.enable();
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, 98);
-        //}
+        }
     }
 
 
