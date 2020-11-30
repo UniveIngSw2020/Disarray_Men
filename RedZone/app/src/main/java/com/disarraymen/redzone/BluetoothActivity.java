@@ -19,16 +19,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
-import android.view.View;
-import android.webkit.WebView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 import org.altbeacon.beacon.Beacon;
@@ -43,22 +39,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-
-import static android.os.AsyncTask.execute;
-import static android.provider.Settings.Global.DEVICE_NAME;
 
 
 public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
-    Button btn4;
     BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-    ListView listView;
     private ArrayList<String> mDeviceList = new ArrayList<String>();
     private BeaconManager beaconManager;
     protected double distance = 0;
-
+    NotificationUtils mNotificationUtils;
+    ArrayList<Beacon> beaconsNotified = new ArrayList<>();
+    protected static final String TAG = "RangingActivity";
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -70,25 +61,18 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
                 if(device != null && device.getName() != null && !mDeviceList.contains(deviceToAdd)) {
                     mDeviceList.add(deviceToAdd);
                 }
-                Log.i("BT", device.getName() + "\n" + device.getAddress());
-                /*
-                listView.setAdapter(new ArrayAdapter<String>(context,
-                        android.R.layout.simple_list_item_1, mDeviceList));
-
-                 */
+                //Log.i("BT", device.getName() + "\n" + device.getAddress());
             }
         }
     };
 
     NotificationCompat.Builder distanze = new NotificationCompat.Builder(this, NotificationUtils.CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_alert)
-            //.setLargeIcon(bitmap)
             .setContentTitle("Red Zone!")
             .setContentText("Sei troppo vicino a un'altro soggetto!")
             .setPriority(NotificationCompat.PRIORITY_MAX)
-            // Set the intent that will fire when the user taps the notification
             .setContentIntent(NotificationUtils.pendingIntent)
-            .setAutoCancel(true)//Vibration
+            .setAutoCancel(true)
             .setColor(Color.RED)
             .setOnlyAlertOnce(true)
             .setVibrate(new long[] { 1000, 1000, 1000, 1000, 1000 })
@@ -97,28 +81,6 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
     NotificationManager notificationManager;
 
-    @SuppressLint("HardwareIds")
-    private String getBluetoothMac(final Context context) {
-
-        String result = null;
-        if (context.checkCallingOrSelfPermission(Manifest.permission.BLUETOOTH)
-                == PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                // Hardware ID are restricted in Android 6+
-                // https://developer.android.com/about/versions/marshmallow/android-6.0-changes.html#behavior-hardware-id
-                // Getting bluetooth mac via reflection for devices with Android 6+
-                result = android.provider.Settings.Secure.getString(context.getContentResolver(),
-                        "bluetooth_address");
-            } else {
-                BluetoothAdapter bta = BluetoothAdapter.getDefaultAdapter();
-                result = bta != null ? bta.getAddress() : "";
-            }
-        }
-        toastMe(result);
-        return result;
-    }
-
-    @SuppressLint("ResourceType")
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,18 +94,6 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
 
         beaconManager = BeaconManager.getInstanceForApplication(this);
-/*
-        btn4 = (Button) findViewById(R.id.btn5);
-        btn4.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(final View v) {
-                setBtn4();
-            }
-        });
-        btn4.setClickable(true);
-        btn4.setVisibility(View.VISIBLE);
-
-        listView = (ListView) findViewById(R.id.listView2);
-*/
         checkBluetoothDevices();
 
         ensureDiscoverable();
@@ -174,9 +124,7 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
                 Log.i(TAG, "Advertisement start succeeded.");
             }
         });
-
     }
-
 
     @Override
     protected void onDestroy() {
@@ -185,7 +133,6 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
         super.onDestroy();
     }
 
-
     public void setBtn4() {
 
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -193,7 +140,7 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
             // Device does not support Bluetooth
             toastMe("Device does not support Bluetooth");
         } else if (!mBluetoothAdapter.isEnabled()) {
-            // Bluetooth is not enabled :)
+            // Bluetooth is not enabled
             flipBT();
             toastMe("Bluetooth is not enabled :)");
         } else {
@@ -205,7 +152,6 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
     public void checkBluetoothDevices() {
         mDeviceList.clear();
-//        listView.clearChoices();
         mBluetoothAdapter.startDiscovery();
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(mReceiver, filter);
@@ -218,7 +164,6 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
             for (BluetoothDevice device : pairedDevices) {
                 toastMe(device.getAddress()+"-----"+address);
                 if (device.getAddress().equals(address)) {
-                    //bluetoothDevice = device;
                     return true;
                 }
             }
@@ -241,16 +186,13 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
         return (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED);
     }
 
-
     private void toastMe(String str){
         Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
     }
 
     private void ensureDiscoverable() {
-        //toastMe("discoverable");
         if (mBluetoothAdapter.getScanMode() !=
                 BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
-
             Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
             if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.P){
                 discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 3600);
@@ -268,17 +210,10 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
             } else{
                 discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
             }
-
             startActivity(discoverableIntent);
-
         }
     }
 
-
-    NotificationUtils mNotificationUtils;
-    ArrayList<Beacon> beaconsNotified = new ArrayList<>();
-
-    protected static final String TAG = "RangingActivity";
     @Override
     public void onBeaconServiceConnect() {
         beaconManager.removeAllRangeNotifiers();
@@ -288,7 +223,6 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
                 if (beacons.size() > 0) {
                     Beacon beacon = beacons.iterator().next();
                     distance = beacon.getDistance();
-                    //toastMe("The first beacon I see is about "+distance+" meters away.");
                     if (!beaconsNotified.contains(beacon) && distance < 1 && !findDevice(beacon.getBluetoothAddress())){
                         beaconsNotified.add(beacon);
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -297,17 +231,15 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
                         } else {
                             notificationManager.notify(1, distanze.build());
                         }
-                        //toastMe(String.valueOf(distance));
                     } else if (beaconsNotified.contains(beacon) && distance > 1) {
                         beaconsNotified.remove(beacon);
                     }
-                    //Log.i(TAG, "The first beacon I see is about "+beacons.iterator().next().getDistance()+" meters away.");
                 }
             }
         });
-
         try {
             beaconManager.startRangingBeaconsInRegion(new Region("myRangingUniqueId", null, null, null));
         } catch (RemoteException e) {    }
     }
+    
 }
