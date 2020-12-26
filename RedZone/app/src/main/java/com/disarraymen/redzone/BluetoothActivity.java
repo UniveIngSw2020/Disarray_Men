@@ -17,8 +17,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 
@@ -37,7 +39,7 @@ import java.util.Set;
 
 public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
-    BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    static BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     private ArrayList<String> mDeviceList;
     private BeaconManager beaconManager;
     protected double distance = 0;
@@ -157,9 +159,9 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
         Toast.makeText(this, str, Toast.LENGTH_SHORT).show();
     }
 
+
     private void ensureDiscoverable() {
-        if (mBluetoothAdapter.getScanMode() !=
-                BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+        if (mBluetoothAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
             Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
             if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.P){
                 discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 3600);
@@ -179,6 +181,17 @@ public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
             }
             startActivity(discoverableIntent);
         }
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                changeColorButtonBluetooth();
+            }
+        }.start();
     }
 
     @Override

@@ -49,7 +49,8 @@
                             android:layout_marginTop="70dp"
                             android:background="#4CAF50"
                             app:srcCompat="@android:drawable/stat_sys_data_bluetooth"
-                            tools:visibility="visible" />
+                            tools:visibility="visible"
+                            android:contentDescription="@string/todo" />
 
                         <ImageButton
                             android:id="@+id/gps"
@@ -59,7 +60,8 @@
                             android:layout_marginTop="70dp"
                             android:background="#4CAF50"
                             app:srcCompat="@android:drawable/ic_dialog_map"
-                            tools:visibility="visible" />
+                            tools:visibility="visible"
+                            android:contentDescription="@string/todo" />
 
                         <ImageButton
                             android:id="@+id/exit"
@@ -68,7 +70,7 @@
                             android:layout_gravity="center"
                             android:layout_marginTop="70dp"
                             android:background="#6A6968"
-                            android:contentDescription="TODO"
+                            android:contentDescription="@string/todo"
                             app:srcCompat="@android:drawable/btn_dialog"
                             tools:visibility="visible" />
 
@@ -99,7 +101,8 @@
                             android:id="@+id/imageView"
                             android:layout_width="match_parent"
                             android:layout_height="40dp"
-                            android:background="#FFFFFF" />
+                            android:background="#FFFFFF"
+                            android:contentDescription="@string/todo" />
 
                         <ImageView
                             android:id="@+id/imageView2"
@@ -108,7 +111,8 @@
                             android:layout_marginStart="10dp"
                             android:layout_marginTop="5dp"
                             app:srcCompat="?android:attr/alertDialogIcon"
-                            tools:srcCompat="?android:attr/alertDialogIcon" />
+                            tools:srcCompat="?android:attr/alertDialogIcon"
+                            android:contentDescription="@string/todo" />
 
                         <TextView
                             android:id="@+id/tabText"
@@ -166,8 +170,7 @@
                     android:layout_height="match_parent"
                     android:layout_gravity="center|center_horizontal|center_vertical"
                     android:layout_margin="20dp"
-                    android:foregroundGravity="center_vertical|center|center_horizontal"
-                    tools:ignore="WebViewLayout">
+                    android:foregroundGravity="center_vertical|center|center_horizontal">
 
                 </WebView>
 
@@ -180,7 +183,7 @@
                         android:layout_width="150dp"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
-                        android:layout_marginLeft="90dp"
+                        android:layout_marginStart="90dp"
                         android:text="@string/accept" />
 
                     <Button

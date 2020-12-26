@@ -10,4 +10,7 @@
 
     <string name="terms"><b>Terms &amp; Conditions</b></string>
     <string name="Google_Play_Services_link"><a href="https://policies.google.com/terms">Google Play Services</a></string>
+    <string name="decline">DECLINE</string>
+    <string name="accept">ACCEPT</string>
+    <string name="todo">TODO</string>
 </resources>

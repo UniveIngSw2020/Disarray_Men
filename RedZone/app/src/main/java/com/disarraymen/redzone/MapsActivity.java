@@ -3,6 +3,7 @@ package com.disarraymen.redzone;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -14,6 +15,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.sip.SipSession;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
@@ -24,6 +26,7 @@ import android.view.animation.AnimationUtils;
 import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TabHost;
 import android.widget.TextView;
@@ -58,6 +61,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.security.SecureRandom;
+import java.util.EventListener;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -72,7 +76,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     // ------------------------------------------ Objects ------------------------------------------
 
     // Layout
-    Button accept_button, decline_button, blt, gps, exit;
+    Button accept_button, decline_button;
+    ImageButton blt;
+    ImageButton gps;
+    ImageButton exit;
     TextView text1;
     ImageView image1, image2;
     Animation show, hide;
@@ -101,6 +108,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     Looper mapsLooper = Looper.myLooper();
     private boolean recheckUser = true;
     private boolean btnGPSClick = false;
+    private static boolean exit_app = false;
     private int raggioCerchio = 1000;
     static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     static SecureRandom rnd = new SecureRandom();
@@ -126,14 +134,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             if(!marks.containsKey(snapshot.getKey()) && !Objects.equals(snapshot.getKey(), userId)){
                 String[] latlong = Objects.requireNonNull(snapshot.child("data").getValue()).toString().split(",");
                 LatLng pos = new LatLng(Double.parseDouble(latlong[0]), Double.parseDouble(latlong[1]));
-                Circle localMark = mMap.addCircle(new CircleOptions()
+                CircleOptions circle = new CircleOptions()
                         .center(pos)
                         .radius(raggioCerchio)
                         .fillColor(0x44ff0000)
                         .strokeColor(0xffff0000)
-                        .strokeWidth(0));
-                localMark.setTag(snapshot.getKey());
-                marks.put(snapshot.getKey(), localMark);
+                        .strokeWidth(0);
+                if(mMap != null){
+                    Circle localMark = mMap.addCircle(circle);
+                    localMark.setTag(snapshot.getKey());
+                    marks.put(snapshot.getKey(), localMark);
+                }
             }
             assembraCerchi();
         }
@@ -151,7 +162,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         @Override
         public void onChildRemoved(@NonNull DataSnapshot snapshot) {
-            if(Objects.equals(snapshot.getKey(), userId)) {
+            if(Objects.equals(snapshot.getKey(), userId) && !MapsActivity.exit_app) {
                 Map<String,Object> update = new HashMap<>();
                 update.put("data", myLatLng.latitude + "," + myLatLng.longitude);
                 update.put("timestamp", System.currentTimeMillis());
@@ -197,26 +208,27 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         public void onLocationResult(LocationResult locationResult) {
             getCurrentLocation();
-            if(myOldLatLng == null || metersFromLatLng(myLatLng, myOldLatLng) > 1) {
-                StatusBarNotification[] notifications = new StatusBarNotification[0];
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                    notifications = notificationManager.getActiveNotifications();
-                }
+            if(myOldLatLng == null || metersFromLatLng(myLatLng, myOldLatLng) > 5) {
                 myOldLatLng = myLatLng;
                 onLocationChanged(locationResult.getLastLocation());
                 myMarker.setPosition(myLatLng);
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(myLatLng));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLatLng, 12.0f));
-                for (StatusBarNotification notification : notifications) {
-                    if (notification.getId() == 101) {
-                        return;
+                while(marks.entrySet().iterator().hasNext()){
+                    Circle v = marks.entrySet().iterator().next().getValue();
+                    if(metersFromLatLng(v.getCenter(), myMarker.getPosition()) < 100){
+
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                Notification.Builder nb = mNotificationUtils
+                                        .getAndroidChannelNotification("Red Zone!", "Sei appena entrato in un assembramento!")
+                                        .setAutoCancel(false)
+                                        .setOnlyAlertOnce(true);
+                                mNotificationUtils.getManager().notify(101, nb.build());
+                            } else {
+                                notificationManager.notify(101, assembramento.build());
+                            }
+                            return;
                     }
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    Notification.Builder nb = mNotificationUtils.getAndroidChannelNotification("Red Zone!", "Sei appena entrato in un assembramento!");
-                    mNotificationUtils.getManager().notify(101, nb.build());
-                } else {
-                    notificationManager.notify(101, assembramento.build());
                 }
             }
         }
@@ -244,14 +256,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_maps);
-        Intent intent = new Intent(this, BluetoothActivity.class);
-        startActivity(intent);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            mNotificationUtils = new NotificationUtils(this);
-        }
         pendingIntent = PendingIntent.getActivity(this, 0,
                 new Intent(this, MapsActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
         frameLayout = findViewById(R.id.privacyLayout);
+
+
 
         TabHost tabs = findViewById(R.id.tabhost);
         tabs.setup();
@@ -279,13 +288,34 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    protected void close(){
+        Intent homeIntent = new Intent(Intent.ACTION_MAIN);
+        homeIntent.addCategory( Intent.CATEGORY_HOME );
+        homeIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(homeIntent);
+        finish();
+        System.exit(0);
+    }
+
     @Override
     protected void onDestroy() {
-        myRef.removeEventListener(checkUsernameListener);
+        exit_app = true;
+        myRef.child(userId).removeEventListener(eventListenerUpdate);
         myRef.removeEventListener(updateOthersLocationsListener);
-        myRef.removeEventListener(eventListenerUpdate);
-        DatabaseReference.CompletionListener completionListener = (error, ref) -> MapsActivity.super.onDestroy();
+        myRef.removeEventListener(checkUsernameListener);
+        DatabaseReference.CompletionListener completionListener = (error, ref) -> close();
         myRef.child(userId).removeValue(completionListener);
+        super.onDestroy();
+    }
+
+    private void buildAlertMessageNoGps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Your GPS seems to be disabled, do you want to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", (dialog, id) -> startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)))
+                .setNegativeButton("No", (dialog, id) -> dialog.cancel());
+        final AlertDialog alert = builder.create();
+        alert.show();
     }
 
     public void start(){
@@ -293,6 +323,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationUtils.pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
+
+        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+
+
+
+
 
         blt = findViewById(R.id.blt);
         gps = findViewById(R.id.gps);
@@ -320,17 +356,30 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         myRef = database.getReference().child("userLocations");
         createUsername();
 
-        if (!isPermissionAccess()) {
-            setBtnGPS();
-        } else {
+        if (isPermissionAccess()) {
             getCurrentLocation();
-            startLocationUpdates();
 
             // Obtain the SupportMapFragment and get notified when the map is ready to be used.
             SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                     .findFragmentById(R.id.map);
             assert mapFragment != null;
             mapFragment.getMapAsync(this);
+        }
+        if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+            buildAlertMessageNoGps();
+        }
+        Intent intent = new Intent(this, BluetoothActivity.class);
+        startActivity(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mNotificationUtils = new NotificationUtils(this);
+        }
+
+        if (!isPermissionAccess()) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 99);
+//            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 99);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 99);
+            }
         }
     }
 
@@ -344,6 +393,25 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .title("Tu sei qui"));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(locationMarker));
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(locationMarker, 12.0f));
+    }
+
+    public void createLastKnownLocation(){
+        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        @SuppressLint("MissingPermission") Location gpsLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        @SuppressLint("MissingPermission") Location netLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        if (gpsLocation != null) {
+            currentlatitude = gpsLocation.getLatitude();
+            currentlongitude = gpsLocation.getLongitude();
+        } else if (netLocation != null) {
+            currentlatitude = netLocation.getLatitude();
+            currentlongitude = netLocation.getLongitude();
+        }
+        myLatLng = new LatLng(currentlatitude, currentlongitude);
+        myMarker = mMap.addMarker(new MarkerOptions()
+                .position(myLatLng)
+                .title("Tu sei qui"));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(myLatLng));
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLatLng, 12.0f));
     }
 
     @SuppressLint("MissingPermission")
@@ -367,7 +435,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private boolean isPermissionAccess() {
-        return (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED);
+        return (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission( this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED);
     }
 
     @SuppressLint("MissingPermission")
@@ -399,7 +468,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         myLatLng = new LatLng(location.getLatitude(), location.getLongitude());
         updateMyLocationOnDatabase();
     }
-
     public void updateOthersLocation() {
         // Read from the database
         myRef.addChildEventListener(updateOthersLocationsListener);
@@ -454,7 +522,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         Math.sin(dLon/2) * Math.sin(dLon/2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         double d = R * c;
-        return d * 1000; // meters
+        return Math.abs(d * 1000); // meters
     }
 
     public void assembraCerchi() {
@@ -486,12 +554,68 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void flipBT() {
-        if (BluetoothAdapter.getDefaultAdapter().isEnabled()) {
-            BluetoothAdapter.getDefaultAdapter().disable();
+        if (BluetoothActivity.mBluetoothAdapter.isEnabled()) {
+            BluetoothActivity.mBluetoothAdapter.disable();
+            blt.setBackgroundColor(Color.parseColor("#E91E1E"));
         } else {
-            BluetoothAdapter.getDefaultAdapter().enable();
+            ensureDiscoverable();
+            BluetoothActivity.mBluetoothAdapter.enable();
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, 98);
+        }
+    }
+
+    private void ensureDiscoverable() {
+        if (mBluetoothAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.P){
+                discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 3600);
+                new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            sleep(36000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        ensureDiscoverable();
+                    }
+                }.start();
+            } else{
+                discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
+            }
+            startActivity(discoverableIntent);
+        }
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                changeColorButtonBluetooth();
+            }
+        }.start();
+    }
+    static BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    public void changeColorButtonBluetooth(){
+        if (mBluetoothAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE && mBluetoothAdapter.isEnabled()) {
+            blt.setBackgroundColor(Color.parseColor("#4CAF50"));
+        } else {
+            blt.setBackgroundColor(Color.parseColor("#E91E1E"));
+            new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    changeColorButtonBluetooth();
+                    ensureDiscoverable();
+                }
+            }.start();
         }
     }
 
@@ -500,6 +624,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         editor.putBoolean("privacy", true);
         editor.apply();
         start();
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 99);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 99);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 99);
+        }
 
     }
 
@@ -509,36 +638,28 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void exit(){
         onDestroy();
-        finish();
-        System.exit(0);
     }
 
     public void setBtnGPS() {
-        if (!isPermissionAccess()) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 99);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 99);
-            }
+        if (!btnGPSClick) {
+            text1.startAnimation(show);
+            image1.startAnimation(show);
+            image2.startAnimation(show);
+            text1.setVisibility(View.VISIBLE);
+            image1.setVisibility(View.VISIBLE);
+            image2.setVisibility(View.VISIBLE);
+            getFusedLocationProviderClient(this).removeLocationUpdates(mLocationCallback);
+            btnGPSClick = true;
+            gps.setBackgroundColor(Color.parseColor("#E91E1E"));
         } else {
-            if (!btnGPSClick) {
-                text1.startAnimation(show);
-                image1.startAnimation(show);
-                image2.startAnimation(show);
-                text1.setVisibility(View.VISIBLE);
-                image1.setVisibility(View.VISIBLE);
-                image2.setVisibility(View.VISIBLE);
-                getFusedLocationProviderClient(this).removeLocationUpdates(mLocationCallback);
-                btnGPSClick = true;
-            } else {
-                text1.startAnimation(hide);
-                image1.startAnimation(hide);
-                image2.startAnimation(hide);
-                text1.setVisibility(View.GONE);
-                image1.setVisibility(View.GONE);
-                image2.setVisibility(View.GONE);
-                startLocationUpdates();
-                btnGPSClick = false;
-            }
+            text1.startAnimation(hide);
+            image1.startAnimation(hide);
+            image2.startAnimation(hide);
+            text1.setVisibility(View.GONE);
+            image1.setVisibility(View.GONE);
+            image2.setVisibility(View.GONE);
+            btnGPSClick = false;
+            gps.setBackgroundColor(Color.parseColor("#4CAF50"));
         }
     }
 
