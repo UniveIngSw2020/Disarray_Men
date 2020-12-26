@@ -15,11 +15,9 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
-import android.net.sip.SipSession;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
-import android.service.notification.StatusBarNotification;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -61,7 +59,6 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.security.SecureRandom;
-import java.util.EventListener;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -109,7 +106,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private boolean recheckUser = true;
     private boolean btnGPSClick = false;
     private static boolean exit_app = false;
-    private int raggioCerchio = 1000;
+    private final int raggioCerchio = 1000;
     static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     static SecureRandom rnd = new SecureRandom();
 
@@ -395,6 +392,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(locationMarker, 12.0f));
     }
 
+    /*
     public void createLastKnownLocation(){
         LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         @SuppressLint("MissingPermission") Location gpsLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
@@ -412,7 +410,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .title("Tu sei qui"));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(myLatLng));
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLatLng, 12.0f));
-    }
+    }*/
 
     @SuppressLint("MissingPermission")
     public void getCurrentLocation() {

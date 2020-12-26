@@ -17,10 +17,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
-import android.widget.ImageButton;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 
@@ -32,7 +30,6 @@ import org.altbeacon.beacon.BeaconTransmitter;
 import org.altbeacon.beacon.Region;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
@@ -40,7 +37,7 @@ import java.util.Set;
 public class BluetoothActivity extends MapsActivity  implements BeaconConsumer {
 
     static BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-    private ArrayList<String> mDeviceList;
+    private final ArrayList<String> mDeviceList;
     private BeaconManager beaconManager;
     protected double distance = 0;
     NotificationUtils mNotificationUtils;
